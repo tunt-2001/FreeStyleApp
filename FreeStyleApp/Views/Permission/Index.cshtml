@@ -1,0 +1,144 @@
+﻿@model IEnumerable<FreeStyleApp.Models.Permission>
+@{
+    ViewData["Title"] = "Quản lý Quyền";
+}
+
+<h1 class="h3 mb-2 text-gray-800">@ViewData["Title"]</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Danh sách vai trò</h6>
+        <button class="btn btn-primary btn-sm" onclick="openPermissionModal(null)">
+            <i class="fas fa-plus"></i> Thêm mới
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Mã Quyền (Code)</th>
+                        <th>Tên Quyền (Name)</th>
+                        <th class="text-center" style="width: 120px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var permission in Model)
+                    {
+                        <tr>
+                            <td><code class="fw-bold">@permission.Code</code></td>
+                            <td>@permission.Name</td>
+                            <td class="text-center">
+                                <button class="btn btn-primary btn-circle btn-sm" title="Sửa" onclick="openPermissionModal('@permission.Id', '@permission.Code', '@permission.Name')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-circle btn-sm" title="Xóa" onclick="deletePermission('@permission.Id', '@permission.Code')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="permissionModal" tabindex="-1" role="dialog" aria-labelledby="permissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="permissionModalLabel">Thông tin vai trò</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="permissionForm" onsubmit="return false;">
+                    <input type="hidden" id="permissionId" />
+                    <div class="mb-3">
+                        <label for="permissionCode" class="form-label">Mã vai trò</label>
+                        <input type="text" class="form-control" id="permissionCode"  required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="permissionName" class="form-label">Tên vai trò</label>
+                        <input type="text" class="form-control" id="permissionName"  required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Hủy</button>
+                <button class="btn btn-primary" type="button" onclick="savePermission()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const permissionModal = new bootstrap.Modal(document.getElementById('permissionModal'));
+
+        function openPermissionModal(id, code, name) {
+            document.getElementById('permissionForm').reset();
+            document.getElementById('permissionCode').disabled = false;
+
+            if (!id) { 
+                document.getElementById('permissionModalLabel').innerText = 'Thêm vai trò mới';
+                document.getElementById('permissionId').value = '';
+            } else { 
+                document.getElementById('permissionModalLabel').innerText = 'Chỉnh sửa vai trò';
+                document.getElementById('permissionId').value = id;
+                document.getElementById('permissionCode').value = code;
+                document.getElementById('permissionName').value = name;
+
+                document.getElementById('permissionCode').disabled = true;
+            }
+
+            permissionModal.show();
+        }
+
+        function savePermission() {
+            const permissionData = {
+                id: document.getElementById('permissionId').value,
+                code: document.getElementById('permissionCode').value,
+                name: document.getElementById('permissionName').value
+            };
+
+            if (!permissionData.code || !permissionData.name) {
+                alert('Vui lòng nhập đầy đủ mã và tên vai trò');
+                return;
+            }
+
+            fetch('/Permission/SavePermission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(permissionData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    permissionModal.hide();
+                    showDialog(data.message, true);
+                    setTimeout(() => window.location.reload(), 1500); 
+                } else {
+                    showDialog(data.message, false);
+                }
+            });
+        }
+
+        function deletePermission(id, code) {
+            if (confirm(`Bạn có chắc chắn muốn xóa vai trò '${code}' không? \nLƯU Ý: Mọi người dùng đang có vai trò này sẽ bị mất vai trò.`)) {
+                fetch(`/Permission/DeletePermission?id=${id}`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                             showDialog(data.message, true);
+                             setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                             showDialog(data.message, false);
+                        }
+                    });
+            }
+        }
+    </script>
+}

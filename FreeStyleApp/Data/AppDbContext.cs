@@ -1,6 +1,6 @@
 ﻿using FreeStyleApp.Models;
 using Microsoft.EntityFrameworkCore;
-
+    
 namespace FreeStyleApp.Data
 {
     public class AppDbContext : DbContext
@@ -9,6 +9,7 @@ namespace FreeStyleApp.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

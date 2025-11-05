@@ -15,14 +15,14 @@ namespace FreeStyleApp.Controllers
         private readonly AppDbContext _context;
         public UserController(AppDbContext context) { _context = context; }
 
-        public async Task<IActionResult> Index()
-        {
-            if (!UserHasPermission("Admin")) return Forbid();
+        //public async Task<IActionResult> Index()
+        //{
+        //    if (!UserHasPermission("Admin")) return Forbid();
 
-            ViewBag.AllPermissions = await _context.Permissions.ToListAsync();
-            var users = await _context.Users.ToListAsync();
-            return View(users);
-        }
+        //    ViewBag.AllPermissions = await _context.Permissions.ToListAsync();
+        //    var users = await _context.Users.ToListAsync();
+        //    return View(users);
+        //}
 
 
         [HttpGet]
@@ -100,6 +100,45 @@ namespace FreeStyleApp.Controllers
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Xóa người dùng thành công." });
+        }
+
+        public async Task<IActionResult> Index(string searchString, string sortOrder, int? pageNumber)
+        {
+            if (!UserHasPermission("Admin")) return Forbid();
+
+            ViewData["CurrentSort"] = sortOrder;
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["UserNameSortParm"] = sortOrder == "username" ? "username_desc" : "username";
+            ViewData["CurrentFilter"] = searchString;
+
+            var usersQuery = _context.Users.AsQueryable();
+
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                usersQuery = usersQuery.Where(u => u.UserName.Contains(searchString) || u.FullName.Contains(searchString));
+            }
+
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    usersQuery = usersQuery.OrderByDescending(u => u.FullName);
+                    break;
+                case "username":
+                    usersQuery = usersQuery.OrderBy(u => u.UserName);
+                    break;
+                case "username_desc":
+                    usersQuery = usersQuery.OrderByDescending(u => u.UserName);
+                    break;
+                default:
+                    usersQuery = usersQuery.OrderBy(u => u.FullName);
+                    break;
+            }
+
+            int pageSize = 10;
+            var paginatedUsers = await PaginatedList<User>.CreateAsync(usersQuery.AsNoTracking(), pageNumber ?? 1, pageSize);
+
+            ViewBag.AllPermissions = await _context.Permissions.ToListAsync();
+            return View(paginatedUsers);
         }
 
         private bool UserHasPermission(string permissionId)

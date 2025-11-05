@@ -1,43 +1,63 @@
-﻿@model IEnumerable<FreeStyleApp.Models.User>
+﻿@model PaginatedList<FreeStyleApp.Models.User>
 @{
     ViewData["Title"] = "Quản lý Người dùng";
     var allPermissions = ViewBag.AllPermissions as List<FreeStyleApp.Models.Permission> ?? new List<FreeStyleApp.Models.Permission>();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="mb-0">@ViewData["Title"]</h3>
-    <button class="btn btn-primary" onclick="openUserModal(null)">
-        <i class="bi bi-plus-circle"></i> Thêm Người dùng mới
-    </button>
-</div>
-
-<div class="card shadow-sm">
+<h1 class="h3 mb-2 text-gray-800">@ViewData["Title"]</h1>
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Danh sách Người dùng</h6>
+    </div>
     <div class="card-body">
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Tên đăng nhập</th>
-                    <th>Họ và Tên</th>
-                    <th class="text-center" style="width: 150px;">Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var user in Model)
-                {
+        <div class="mb-3 d-flex justify-content-between">
+            <form asp-action="Index" method="get" class="d-flex">
+                <input type="text" name="SearchString" class="form-control mr-2" placeholder="Tìm kiếm..." value="@ViewData["CurrentFilter"]" />
+                <button class="btn btn-secondary" type="submit"><i class="fas fa-search"></i></button>
+            </form>
+            <button class="btn btn-primary" onclick="openUserModal(null)">
+                <i class="fas fa-plus"></i> Thêm mới
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
                     <tr>
-                        <td>@user.UserName</td>
-                        <td>@user.FullName</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary" onclick="openUserModal('@user.Id')">Sửa</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('@user.Id', '@user.UserName')">Xóa</button>
-                        </td>
+                        <th><a asp-action="Index" asp-route-sortOrder="@ViewData["UserNameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Tên đăng nhập</a></th>
+                        <th><a asp-action="Index" asp-route-sortOrder="@ViewData["NameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Họ và Tên</a></th>
+                        <th class="text-center">Thao tác</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>@user.UserName</td>
+                            <td>@user.FullName</td>
+                            <td class="text-center">
+                                <button class="btn btn-primary btn-circle btn-sm" onclick="openUserModal('@user.Id')"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-circle btn-sm" onclick="deleteUser('@user.Id', '@user.UserName')"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @{
+            var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+            var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+        }
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+                <a asp-action="Index" asp-route-sortOrder="@ViewData["CurrentSort"]" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-currentFilter="@ViewData["CurrentFilter"]" class="btn btn-secondary @prevDisabled">Trước</a>
+                <a asp-action="Index" asp-route-sortOrder="@ViewData["CurrentSort"]" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-currentFilter="@ViewData["CurrentFilter"]" class="btn btn-secondary @nextDisabled">Sau</a>
+            </div>
+            <span>Trang <strong>@Model.PageIndex</strong> của <strong>@Model.TotalPages</strong></span>
+        </div>
     </div>
 </div>
-
 
 <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -62,6 +82,7 @@
                     <div class="mb-3">
                         <label for="password" class="form-label">Mật khẩu</label>
                         <input type="password" class="form-control" id="password" autocomplete="new-password" />
+                        <small class="form-text text-muted">Để trống nếu không muốn thay đổi mật khẩu.</small>
                     </div>
                     <hr />
                     <h5>Phân quyền</h5>
@@ -70,10 +91,11 @@
                         {
                             <div class="col-md-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="@permission.Id" id="perm_@permission.Id">
-                                    <label class="form-check-label" for="perm_@permission.Id">
+                                    <input class="form-check-input" type="checkbox" value="@permission.Code" id="perm_@permission.Code.Replace('.', '_')">
+                                    <label class="form-check-label" for="perm_@permission.Code.Replace('.', '_')">
                                         @permission.Name
                                     </label>
+                                    <small class="text-muted d-block">Mã: @permission.Code</small>
                                 </div>
                             </div>
                         }

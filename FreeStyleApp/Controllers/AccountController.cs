@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using FreeStyleApp.Data; 
+using FreeStyleApp.DTOs; 
+using FreeStyleApp.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FreeStyleApp.Data; 
-using FreeStyleApp.DTOs; 
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -37,21 +38,27 @@ namespace FreeStyleApp.Controllers
                 return Json(new { success = false, message = "Vui lòng nhập tên đăng nhập và mật khẩu." });
             }
 
+            var log = new AuditLog { Timestamp = DateTime.UtcNow, UserName = model.Username };
+
             var user = await _context.Users
                 .Include(u => u.UserPermissions)
                 .ThenInclude(up => up.Permission)
                 .FirstOrDefaultAsync(u => u.UserName == model.Username);
 
-            if (user == null)
-            {
-                return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
-            }
-
             var passwordHash = HashPassword(model.Password);
-            if (passwordHash != user.PasswordHash)
+            if (user == null || passwordHash != user.PasswordHash)
             {
+                log.ActionType = "Đăng nhập thất bại";
+                log.Details = "Sai tên đăng nhập hoặc mật khẩu.";
+                _context.AuditLogs.Add(log);
+                await _context.SaveChangesAsync();
                 return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
             }
+           
+            log.ActionType = "Đăng nhập thành công";
+            log.Details = "";
+            _context.AuditLogs.Add(log);
+            await _context.SaveChangesAsync();
 
             var permissions = user.UserPermissions.Select(p => p.Permission.Code).ToList();
             var permissionsString = string.Join(",", permissions);
