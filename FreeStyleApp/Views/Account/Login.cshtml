@@ -1,0 +1,126 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập - Hệ thống Quản lý Bệnh án</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f2f5; 
+            font-family: Arial, sans-serif;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px; 
+            border: none; 
+            border-radius: 10px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="card login-card shadow-lg">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <img src="https://some-placeholder-for-logo.com/logo.svg" alt="Logo Bệnh viện" width="72" class="mb-3">
+                <h3 class="fw-bold">Hệ thống Quản lý Bệnh án</h3>
+                <p class="text-muted">Vui lòng đăng nhập để tiếp tục</p>
+            </div>
+
+            <form id="loginForm" novalidate>
+                <div class="mb-3">
+                    <label for="username" class="form-label">Tên đăng nhập</label>
+                    <input type="text" class="form-control form-control-lg" id="username" placeholder="Nhập tên đăng nhập" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Mật khẩu</label>
+                    <input type="password" class="form-control form-control-lg" id="password" placeholder="Nhập mật khẩu" required>
+                </div>
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Đăng nhập</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header text-white" id="notificationModalHeader">
+                    <h5 class="modal-title" id="notificationModalLabel">Thông báo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="notificationModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showDialog(message, isSuccess) {
+            const modalElement = document.getElementById('notificationModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+
+            const modalHeader = document.getElementById('notificationModalHeader');
+            const modalBody = document.getElementById('notificationModalBody');
+
+            modalHeader.classList.remove('bg-success', 'bg-danger');
+
+            if (isSuccess) {
+                modalHeader.classList.add('bg-success'); 
+            } else {
+                modalHeader.classList.add('bg-danger'); 
+            }
+
+            modalBody.innerHTML = message;
+            modal.show();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+
+            const loginData = {
+                username: usernameInput.value,
+                password: passwordInput.value
+            };
+
+            fetch('/Account/DoLogin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(loginData)
+            })
+            .then(response => response.json()) 
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    showDialog(data.message, false);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showDialog('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.', false);
+            });
+        });
+    </script>
+</body>
+</html>
