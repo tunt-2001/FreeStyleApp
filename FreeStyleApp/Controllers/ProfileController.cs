@@ -1,19 +1,20 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using FreeStyleApp.Application.DTOs;
+using FreeStyleApp.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FreeStyleApp.Data;
 using System.Security.Claims;
-using FreeStyleApp.Models;
-using System.Security.Cryptography;
-using System.Text;
-using FreeStyleApp.DTOs;
 
 namespace FreeStyleApp.Controllers
 {
     [Authorize]
     public class ProfileController : Controller
     {
-        private readonly AppDbContext _context;
-        public ProfileController(AppDbContext context) { _context = context; }
+        private readonly IProfileService _profileService;
+
+        public ProfileController(IProfileService profileService)
+        {
+            _profileService = profileService;
+        }
 
         public IActionResult Index() => View();
 
@@ -22,36 +23,15 @@ namespace FreeStyleApp.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại." });
+                return BadRequest(new { message = "Dữ liệu không hợp lệ. Mật khẩu mới phải có ít nhất 6 ký tự và khớp với mật khẩu xác nhận." });
             }
 
             var userId = User.FindFirstValue("UserId");
-            var user = await _context.Users.FindAsync(userId);
+            var actionUser = User.Identity.Name;
 
-            if (user == null) return NotFound();
+            await _profileService.ChangePasswordAsync(userId, model, actionUser);
 
-            if (HashPassword(model.OldPassword) != user.PasswordHash)
-            {
-                return Json(new { success = false, message = "Mật khẩu cũ không chính xác." });
-            }
-
-            user.PasswordHash = HashPassword(model.NewPassword);
-            await _context.SaveChangesAsync();
-
-            var log = new AuditLog { Timestamp = DateTime.UtcNow, UserName = user.UserName, ActionType = "Đổi mật khẩu", Details = "Người dùng đã tự đổi mật khẩu thành công." };
-            _context.AuditLogs.Add(log);
-            await _context.SaveChangesAsync();
-
-            return Json(new { success = true, message = "Đổi mật khẩu thành công." });
-        }
-
-        private string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            var builder = new StringBuilder();
-            foreach (var b in bytes) { builder.Append(b.ToString("x2")); }
-            return builder.ToString().ToUpper();
+            return Ok(new { success = true, message = "Đổi mật khẩu thành công." });
         }
     }
 }

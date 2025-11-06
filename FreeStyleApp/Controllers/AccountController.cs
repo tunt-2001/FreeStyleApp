@@ -1,22 +1,22 @@
-﻿using FreeStyleApp.Data; 
-using FreeStyleApp.DTOs; 
-using FreeStyleApp.Models;
+﻿using FreeStyleApp.Application.DTOs;
+using FreeStyleApp.Application.Interfaces;
+using FreeStyleApp.Application.Services;
+using FreeStyleApp.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
-namespace FreeStyleApp.Controllers 
+namespace FreeStyleApp.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IAccountService _accountService;
+        private readonly IAppDbContext _context;
 
-        public AccountController(AppDbContext context)
+        public AccountController(IAccountService accountService, IAppDbContext context)
         {
+            _accountService = accountService;
             _context = context;
         }
 
@@ -33,76 +33,52 @@ namespace FreeStyleApp.Controllers
         [HttpPost]
         public async Task<IActionResult> DoLogin([FromBody] LoginRequest model)
         {
-            if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
+            try
             {
-                return Json(new { success = false, message = "Vui lòng nhập tên đăng nhập và mật khẩu." });
+                var user = await _accountService.ValidateUserAsync(model);
+                await LogAuditAsync(model.Username, "Đăng nhập thành công", "Đăng nhập thành công.");
+
+                var permissionCodes = user.UserPermissions.Select(p => p.Permission.Code).ToList();
+                var permissionsString = string.Join(",", permissionCodes);
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim("UserId", user.Id),
+                    new Claim("UserFullName", user.FullName),
+                    new Claim("Permissions", permissionsString)
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) };
+
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
+                return Ok(new { success = true, redirectUrl = Url.Action("Index", "Home") });
             }
-
-            var log = new AuditLog { Timestamp = DateTime.UtcNow, UserName = model.Username };
-
-            var user = await _context.Users
-                .Include(u => u.UserPermissions)
-                .ThenInclude(up => up.Permission)
-                .FirstOrDefaultAsync(u => u.UserName == model.Username);
-
-            var passwordHash = HashPassword(model.Password);
-            if (user == null || passwordHash != user.PasswordHash)
+            catch (AppException ex) 
             {
-                log.ActionType = "Đăng nhập thất bại";
-                log.Details = "Sai tên đăng nhập hoặc mật khẩu.";
-                _context.AuditLogs.Add(log);
-                await _context.SaveChangesAsync();
-                return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
+                await LogAuditAsync(model.Username, "Đăng nhập thất bại", ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
-           
-            log.ActionType = "Đăng nhập thành công";
-            log.Details = "";
-            _context.AuditLogs.Add(log);
-            await _context.SaveChangesAsync();
-
-            var permissions = user.UserPermissions.Select(p => p.Permission.Code).ToList();
-            var permissionsString = string.Join(",", permissions);
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName), 
-                new Claim("UserId", user.Id),                   
-                new Claim("UserFullName", user.FullName),   
-                new Claim("Permissions", permissionsString) 
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true, 
-                ExpiresUtc = System.DateTimeOffset.UtcNow.AddHours(1) 
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            return Json(new { success = true, redirectUrl = Url.Action("Index", "Home") });
         }
 
         [HttpGet]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await LogAuditAsync(User.Identity.Name, "Đăng xuất", "Người dùng đã đăng xuất.");
+            await HttpContext.SignOutAsync();
             return RedirectToAction("Login");
         }
 
-        private string HashPassword(string password)
+        private async Task LogAuditAsync(string userName, string actionType, string details)
         {
-            using var sha256 = SHA256.Create();
-            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            var builder = new StringBuilder();
-            foreach (var b in bytes)
+            _context.AuditLogs.Add(new AuditLog
             {
-                builder.Append(b.ToString("x2"));
-            }
-            return builder.ToString().ToUpper();
+                Timestamp = DateTime.UtcNow,
+                UserName = userName,
+                ActionType = actionType,
+                Details = details
+            });
+            await _context.SaveChangesAsync();
         }
     }
 }

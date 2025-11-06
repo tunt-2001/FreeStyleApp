@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
-using FreeStyleApp.Data; 
+using FreeStyleApp.Infrastructure;
 
 namespace FreeStyleApp.Controllers
 {

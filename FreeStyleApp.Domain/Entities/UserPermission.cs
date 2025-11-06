@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FreeStyleApp.Models
+namespace FreeStyleApp.Domain.Entities
 {
     [Table("UserPermissions")]
     public class UserPermission

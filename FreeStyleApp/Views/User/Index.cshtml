@@ -1,73 +1,102 @@
-﻿@model PaginatedList<FreeStyleApp.Models.User>
+﻿@using FreeStyleApp.Domain.Entities
+@model PaginatedList<User>
 @{
     ViewData["Title"] = "Quản lý Người dùng";
-    var allPermissions = ViewBag.AllPermissions as List<FreeStyleApp.Models.Permission> ?? new List<FreeStyleApp.Models.Permission>();
+    var allPermissions = ViewBag.AllPermissions as List<Permission> ?? new List<Permission>();
 }
 
 <h1 class="h3 mb-2 text-gray-800">@ViewData["Title"]</h1>
+
 <div class="card shadow mb-4">
-    <div class="card-header py-3">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Danh sách Người dùng</h6>
+        <button class="btn btn-primary btn-sm" onclick="openUserModal(null)">
+            <i class="fas fa-plus"></i> Thêm mới
+        </button>
     </div>
     <div class="card-body">
-        <div class="mb-3 d-flex justify-content-between">
-            <form asp-action="Index" method="get" class="d-flex">
-                <input type="text" name="SearchString" class="form-control mr-2" placeholder="Tìm kiếm..." value="@ViewData["CurrentFilter"]" />
-                <button class="btn btn-secondary" type="submit"><i class="fas fa-search"></i></button>
+    
+    @* === BẮT ĐẦU PHẦN SỬA LỖI BỐ CỤC === *@
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <form asp-action="Index" method="get" class="d-none d-sm-inline-block form-inline mr-auto navbar-search">
+                <div class="input-group">
+                    <input type="text" name="SearchString" class="form-control bg-light border-0 small" placeholder="Tìm kiếm theo tên..." value="@ViewData["CurrentFilter"]">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search fa-sm"></i>
+                        </button>
+                    </div>
+                </div>
             </form>
-            <button class="btn btn-primary" onclick="openUserModal(null)">
-                <i class="fas fa-plus"></i> Thêm mới
-            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                <thead>
+    </div>
+    @* === KẾT THÚC PHẦN SỬA LỖI BỐ CỤC === *@
+
+    <div class="table-responsive">
+        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <thead>
+                <tr>
+                    <th><a asp-action="Index" asp-route-sortOrder="@ViewData["UserNameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Tên đăng nhập</a></th>
+                    <th><a asp-action="Index" asp-route-sortOrder="@ViewData["NameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Họ và Tên</a></th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
                     <tr>
-                        <th><a asp-action="Index" asp-route-sortOrder="@ViewData["UserNameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Tên đăng nhập</a></th>
-                        <th><a asp-action="Index" asp-route-sortOrder="@ViewData["NameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Họ và Tên</a></th>
-                        <th class="text-center">Thao tác</th>
+                        <td>@user.UserName</td>
+                        <td>@user.FullName</td>
+                        <td class="text-center">
+                            <button class="btn btn-primary btn-circle btn-sm" title="Sửa" onclick="openUserModal('@user.Id')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger btn-circle btn-sm" title="Xóa" onclick="deleteUser('@user.Id', '@user.UserName')"><i class="fas fa-trash"></i></button>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in Model)
-                    {
-                        <tr>
-                            <td>@user.UserName</td>
-                            <td>@user.FullName</td>
-                            <td class="text-center">
-                                <button class="btn btn-primary btn-circle btn-sm" onclick="openUserModal('@user.Id')"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-danger btn-circle btn-sm" onclick="deleteUser('@user.Id', '@user.UserName')"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                }
+            </tbody>
+        </table>
+    </div>
 
-        @{
-            var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
-            var nextDisabled = !Model.HasNextPage ? "disabled" : "";
-        }
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <div>
-                <a asp-action="Index" asp-route-sortOrder="@ViewData["CurrentSort"]" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-currentFilter="@ViewData["CurrentFilter"]" class="btn btn-secondary @prevDisabled">Trước</a>
-                <a asp-action="Index" asp-route-sortOrder="@ViewData["CurrentSort"]" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-currentFilter="@ViewData["CurrentFilter"]" class="btn btn-secondary @nextDisabled">Sau</a>
+    @* === BẮT ĐẦU PHẦN SỬA LỖI PHÂN TRANG === *@
+    @{
+        var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+        var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+    }
+    <div class="row">
+        <div class="col-sm-12 col-md-5">
+            <div class="dataTables_info" role="status" aria-live="polite">Trang <strong>@Model.PageIndex</strong> của <strong>@Model.TotalPages</strong></div>
+        </div>
+        <div class="col-sm-12 col-md-7">
+            <div class="dataTables_paginate paging_simple_numbers float-right">
+                <ul class="pagination">
+                    <li class="paginate_button page-item previous @prevDisabled">
+                        <a asp-action="Index" asp-route-sortOrder="@ViewData["CurrentSort"]" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-currentFilter="@ViewData["CurrentFilter"]" class="page-link">Trước</a>
+                    </li>
+                     <li class="paginate_button page-item next @nextDisabled">
+                        <a asp-action="Index" asp-route-sortOrder="@ViewData["CurrentSort"]" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-currentFilter="@ViewData["CurrentFilter"]" class="page-link">Sau</a>
+                    </li>
+                </ul>
             </div>
-            <span>Trang <strong>@Model.PageIndex</strong> của <strong>@Model.TotalPages</strong></span>
         </div>
     </div>
+    @* === KẾT THÚC PHẦN SỬA LỖI PHÂN TRANG === *@
+</div>
 </div>
 
-<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="userModalLabel">Thông tin Người dùng</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
             </div>
             <div class="modal-body">
-                <form id="userForm">
+                @* Thêm novalidate để tắt validate mặc định của trình duyệt *@
+                <form id="userForm" novalidate>
                     <input type="hidden" id="userId" />
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -82,7 +111,6 @@
                     <div class="mb-3">
                         <label for="password" class="form-label">Mật khẩu</label>
                         <input type="password" class="form-control" id="password" autocomplete="new-password" />
-                        <small class="form-text text-muted">Để trống nếu không muốn thay đổi mật khẩu.</small>
                     </div>
                     <hr />
                     <h5>Phân quyền</h5>
@@ -91,11 +119,10 @@
                         {
                             <div class="col-md-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="@permission.Code" id="perm_@permission.Code.Replace('.', '_')">
+                                    <input class="form-check-input" type="checkbox" value="@permission.Id" id="perm_@permission.Code.Replace('.', '_')">
                                     <label class="form-check-label" for="perm_@permission.Code.Replace('.', '_')">
                                         @permission.Name
                                     </label>
-                                    <small class="text-muted d-block">Mã: @permission.Code</small>
                                 </div>
                             </div>
                         }
@@ -103,7 +130,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                @* Sửa data-bs-dismiss thành data-dismiss *@
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy bỏ</button>
                 <button type="button" class="btn btn-primary" onclick="saveUser()">Lưu thay đổi</button>
             </div>
         </div>
@@ -112,47 +140,59 @@
 
 @section Scripts {
     <script>
-        const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        // Không dùng new bootstrap.Modal nữa, để jQuery của template tự xử lý
 
         function openUserModal(userId) {
             document.getElementById('userForm').reset();
+            $('#userForm').removeClass('was-validated'); // Xóa trạng thái validate cũ
             document.getElementById('username').disabled = false;
             document.getElementById('userId').value = userId || '';
 
+            // Yêu cầu nhập mật khẩu khi tạo mới
+            $('#password').prop('required', !userId);
+
             if (!userId) {
-                document.getElementById('userModalLabel').innerText = 'Thêm Người dùng mới';
-                userModal.show();
+                $('#userModalLabel').text('Thêm Người dùng mới');
+                $('#userModal').modal('show');
             } else {
-                document.getElementById('userModalLabel').innerText = 'Chỉnh sửa Người dùng';
-                document.getElementById('username').disabled = true;
+                $('#userModalLabel').text('Chỉnh sửa Người dùng');
+                $('#username').prop('disabled', true);
 
                 fetch(`/User/GetUser?id=${userId}`)
                     .then(res => res.json())
                     .then(data => {
-                        document.getElementById('userId').value = data.id;
-                        document.getElementById('username').value = data.userName;
-                        document.getElementById('fullName').value = data.fullName;
+                        $('#userId').val(data.id);
+                        $('#username').val(data.userName);
+                        $('#fullName').val(data.fullName);
 
                         let userPermissions = data.permissions || [];
                         document.querySelectorAll('#permissionsContainer .form-check-input').forEach(checkbox => {
                             checkbox.checked = userPermissions.includes(checkbox.value);
                         });
-                        userModal.show();
+                        $('#userModal').modal('show');
                     });
             }
         }
 
         function saveUser() {
+            const form = document.getElementById('userForm');
+
+            // Thêm logic validate ở đây
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated'); // Hiển thị thông báo lỗi của Bootstrap
+                return; // Dừng lại nếu form không hợp lệ
+            }
+
             let selectedPermissions = [];
             document.querySelectorAll('#permissionsContainer .form-check-input:checked').forEach(checkbox => {
                 selectedPermissions.push(checkbox.value);
             });
 
             const userData = {
-                id: document.getElementById('userId').value,
-                userName: document.getElementById('username').value,
-                fullName: document.getElementById('fullName').value,
-                password: document.getElementById('password').value,
+                id: $('#userId').val(),
+                userName: $('#username').val(),
+                fullName: $('#fullName').val(),
+                password: $('#password').val(),
                 permissions: selectedPermissions
             };
 
@@ -164,7 +204,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    userModal.hide();
+                    $('#userModal').modal('hide');
                     showDialog(data.message, true);
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
@@ -173,7 +213,7 @@
             });
         }
 
-        function deleteUser(userId, username) {
+            function deleteUser(userId, username) {
             if (confirm(`Bạn có chắc chắn muốn xóa người dùng '${username}' không? Hành động này không thể hoàn tác.`)) {
                 fetch(`/User/DeleteUser?id=${userId}`, { method: 'POST' })
                     .then(res => res.json())

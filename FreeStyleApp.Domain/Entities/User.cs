@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FreeStyleApp.Models
+namespace FreeStyleApp.Domain.Entities
 {
     [Table("Users")]
     public class User

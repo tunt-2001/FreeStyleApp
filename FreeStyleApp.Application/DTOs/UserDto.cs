@@ -1,4 +1,4 @@
-﻿namespace FreeStyleApp.DTOs
+﻿namespace FreeStyleApp.Application.DTOs
 {
     public class UserDto
     {

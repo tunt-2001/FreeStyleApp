@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FreeStyleApp.DTOs
+namespace FreeStyleApp.Application.DTOs
 {
     public class ChangePasswordDto
     {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FreeStyleApp.Data;
-using FreeStyleApp.Models;
+using FreeStyleApp.Infrastructure;
+using FreeStyleApp.Domain.Entities;
 
 namespace FreeStyleApp.Controllers
 {
@@ -48,10 +48,8 @@ namespace FreeStyleApp.Controllers
             logsQuery = logsQuery.OrderByDescending(log => log.Timestamp);
 
             int pageSize = 15;
-            var paginatedLogs = await PaginatedList<AuditLog>.CreateAsync(logsQuery.AsNoTracking(), pageNumber ?? 1, pageSize);
-
+            var paginatedLogs = await PaginatedList<Domain.Entities.AuditLog>.CreateAsync(logsQuery.AsNoTracking(), pageNumber ?? 1, 15);
             ViewBag.ActionTypes = await _context.AuditLogs.Select(l => l.ActionType).Distinct().ToListAsync();
-
             return View(paginatedLogs);
         }
     }

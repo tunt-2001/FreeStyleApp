@@ -1,4 +1,4 @@
-html {
+﻿html {
   font-size: 14px;
 }
 
@@ -19,4 +19,38 @@ html {
 
 body {
   margin-bottom: 60px;
+}
+
+html, body {
+    height: 100%;
+}
+
+#wrapper {
+    display: flex;
+    width: 100%;
+}
+
+#content-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+#content {
+    flex: 1 0 auto !important;
+}
+
+.sticky-footer {
+    flex-shrink: 0;
+}
+
+.table thead th a {
+    text-decoration: none;
+    color: inherit; 
+}
+
+.table thead th a:hover {
+    color: #dddfeb; 
 }
