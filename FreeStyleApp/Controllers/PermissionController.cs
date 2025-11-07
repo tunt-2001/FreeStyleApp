@@ -30,7 +30,8 @@ namespace FreeStyleApp.Controllers
         {
             if (!UserHasPermission("Admin")) return Forbid();
 
-            await _permissionService.SavePermissionAsync(model, User.Identity.Name);
+            var actionUser = User.Identity?.Name ?? "System";
+            await _permissionService.SavePermissionAsync(model, actionUser);
 
             return Ok(new { success = true, message = "Lưu quyền thành công." });
         }
@@ -40,7 +41,8 @@ namespace FreeStyleApp.Controllers
         {
             if (!UserHasPermission("Admin")) return Forbid();
 
-            await _permissionService.DeletePermissionAsync(id, User.Identity.Name);
+            var actionUser = User.Identity?.Name ?? "System";
+            await _permissionService.DeletePermissionAsync(id, actionUser);
 
             return Ok(new { success = true, message = "Xóa quyền thành công." });
         }

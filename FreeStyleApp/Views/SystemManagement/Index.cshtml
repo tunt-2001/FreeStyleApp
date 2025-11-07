@@ -1,0 +1,189 @@
+@{
+    ViewData["Title"] = "Quản lý hệ thống";
+}
+
+<h1 class="h3 mb-4 text-gray-800">@ViewData["Title"]</h1>
+
+<div class="row">
+    <!-- System Information -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thông tin hệ thống</h6>
+            </div>
+            <div class="card-body">
+                @if (ViewBag.SystemInfo != null)
+                {
+                    var systemInfo = ViewBag.SystemInfo;
+                    <dl class="row">
+                        <dt class="col-sm-5">Hệ điều hành:</dt>
+                        <dd class="col-sm-7">@systemInfo.GetType().GetProperty("OperatingSystem")?.GetValue(systemInfo)</dd>
+                        
+                        <dt class="col-sm-5">Tên máy:</dt>
+                        <dd class="col-sm-7">@systemInfo.GetType().GetProperty("MachineName")?.GetValue(systemInfo)</dd>
+                        
+                        <dt class="col-sm-5">Số CPU:</dt>
+                        <dd class="col-sm-7">@systemInfo.GetType().GetProperty("ProcessorCount")?.GetValue(systemInfo)</dd>
+                        
+                        <dt class="col-sm-5">Bộ nhớ đang dùng:</dt>
+                        <dd class="col-sm-7">@systemInfo.GetType().GetProperty("WorkingSet")?.GetValue(systemInfo)</dd>
+                        
+                        <dt class="col-sm-5">.NET Framework:</dt>
+                        <dd class="col-sm-7">@systemInfo.GetType().GetProperty("FrameworkVersion")?.GetValue(systemInfo)</dd>
+                        
+                        <dt class="col-sm-5">Môi trường:</dt>
+                        <dd class="col-sm-7">@systemInfo.GetType().GetProperty("EnvironmentName")?.GetValue(systemInfo)</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Information -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thông tin ứng dụng</h6>
+            </div>
+            <div class="card-body">
+                @if (ViewBag.ApplicationInfo != null)
+                {
+                    var appInfo = ViewBag.ApplicationInfo;
+                    <dl class="row">
+                        <dt class="col-sm-5">Tên ứng dụng:</dt>
+                        <dd class="col-sm-7">@appInfo.GetType().GetProperty("ApplicationName")?.GetValue(appInfo)</dd>
+                        
+                        <dt class="col-sm-5">Phiên bản:</dt>
+                        <dd class="col-sm-7">@appInfo.GetType().GetProperty("Version")?.GetValue(appInfo)</dd>
+                        
+                        <dt class="col-sm-5">Ngày build:</dt>
+                        <dd class="col-sm-7">@appInfo.GetType().GetProperty("BuildDate")?.GetValue(appInfo)</dd>
+                        
+                        <dt class="col-sm-5">Target Framework:</dt>
+                        <dd class="col-sm-7">@appInfo.GetType().GetProperty("TargetFramework")?.GetValue(appInfo)</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Health Status -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Trạng thái hệ thống</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Database:</strong>
+                    <span id="dbStatus" class="badge badge-secondary ml-2">Đang kiểm tra...</span>
+                    <button class="btn btn-sm btn-info ml-2" onclick="testDatabase()">Kiểm tra kết nối</button>
+                </div>
+                
+                @if (ViewBag.HealthStatus != null)
+                {
+                    var health = ViewBag.HealthStatus;
+                    var diskSpace = health.GetType().GetProperty("DiskSpace")?.GetValue(health);
+                    var memory = health.GetType().GetProperty("Memory")?.GetValue(health);
+                    
+                    <div class="mb-3">
+                        <strong>Ổ cứng:</strong>
+                        <ul class="list-unstyled ml-3">
+                            <li>Dung lượng trống: @diskSpace?.GetType().GetProperty("AvailableSpace")?.GetValue(diskSpace)</li>
+                            <li>Tổng dung lượng: @diskSpace?.GetType().GetProperty("TotalSpace")?.GetValue(diskSpace)</li>
+                            <li>Đã sử dụng: @diskSpace?.GetType().GetProperty("UsedPercentage")?.GetValue(diskSpace)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Bộ nhớ:</strong>
+                        <ul class="list-unstyled ml-3">
+                            <li>Bộ nhớ đang dùng: @memory?.GetType().GetProperty("UsedMemory")?.GetValue(memory)</li>
+                            <li>Bộ nhớ riêng: @memory?.GetType().GetProperty("PrivateMemory")?.GetValue(memory)</li>
+                        </ul>
+                    </div>
+                }
+                
+                <div class="mt-3">
+                    <button class="btn btn-warning btn-sm" onclick="clearCache()">
+                        <i class="fas fa-broom"></i> Xóa cache
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Information -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thông tin Database</h6>
+            </div>
+            <div class="card-body">
+                @if (ViewBag.DatabaseInfo != null)
+                {
+                    var dbInfo = ViewBag.DatabaseInfo;
+                    <dl class="row">
+                        <dt class="col-sm-5">Tổng số người dùng:</dt>
+                        <dd class="col-sm-7">@dbInfo.GetType().GetProperty("TotalUsers")?.GetValue(dbInfo)</dd>
+                        
+                        <dt class="col-sm-5">Tổng số vai trò:</dt>
+                        <dd class="col-sm-7">@dbInfo.GetType().GetProperty("TotalPermissions")?.GetValue(dbInfo)</dd>
+                        
+                        <dt class="col-sm-5">Tổng số nhật ký:</dt>
+                        <dd class="col-sm-7">@dbInfo.GetType().GetProperty("TotalAuditLogs")?.GetValue(dbInfo)</dd>
+                        
+                        <dt class="col-sm-5">Tổng số cấu hình:</dt>
+                        <dd class="col-sm-7">@dbInfo.GetType().GetProperty("TotalSettings")?.GetValue(dbInfo)</dd>
+                        
+                        <dt class="col-sm-5">Connection String:</dt>
+                        <dd class="col-sm-7"><small class="text-muted">@dbInfo.GetType().GetProperty("ConnectionString")?.GetValue(dbInfo)</small></dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function testDatabase() {
+            fetch('/SystemManagement/TestDatabaseConnection', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const statusEl = document.getElementById('dbStatus');
+                if (data.success) {
+                    statusEl.className = 'badge badge-success ml-2';
+                    statusEl.textContent = 'Đang hoạt động';
+                } else {
+                    statusEl.className = 'badge badge-danger ml-2';
+                    statusEl.textContent = 'Lỗi kết nối';
+                }
+                showDialog(data.message, data.success);
+            });
+        }
+
+        function clearCache() {
+            const message = `Bạn có chắc muốn xóa cache?<br><small class="text-warning"><i class="fas fa-info-circle"></i> Thao tác này sẽ làm sạch bộ nhớ đệm của ứng dụng.</small>`;
+            showConfirmDialog(message, function () {
+                fetch('/SystemManagement/ClearCache', {
+                    method: 'POST'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    showDialog(data.message, data.success);
+                });
+            });
+        }
+
+        // Auto check database on load
+        window.addEventListener('load', function() {
+            testDatabase();
+        });
+    </script>
+}
+

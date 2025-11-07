@@ -47,8 +47,8 @@ namespace FreeStyleApp.Controllers
 
             logsQuery = logsQuery.OrderByDescending(log => log.Timestamp);
 
-            int pageSize = 15;
-            var paginatedLogs = await PaginatedList<Domain.Entities.AuditLog>.CreateAsync(logsQuery.AsNoTracking(), pageNumber ?? 1, 15);
+            const int pageSize = 15;
+            var paginatedLogs = await PaginatedList<Domain.Entities.AuditLog>.CreateAsync(logsQuery.AsNoTracking(), pageNumber ?? 1, pageSize);
             ViewBag.ActionTypes = await _context.AuditLogs.Select(l => l.ActionType).Distinct().ToListAsync();
             return View(paginatedLogs);
         }

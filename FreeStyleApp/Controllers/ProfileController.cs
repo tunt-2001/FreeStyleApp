@@ -27,7 +27,12 @@ namespace FreeStyleApp.Controllers
             }
 
             var userId = User.FindFirstValue("UserId");
-            var actionUser = User.Identity.Name;
+            var actionUser = User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(actionUser))
+            {
+                return BadRequest(new { message = "Không thể xác định người dùng." });
+            }
 
             await _profileService.ChangePasswordAsync(userId, model, actionUser);
 

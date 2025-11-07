@@ -1,4 +1,5 @@
 ﻿using FreeStyleApp.Application.DTOs;
+using FreeStyleApp.Application.Exceptions;
 using FreeStyleApp.Application.Interfaces;
 using FreeStyleApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,11 @@ namespace FreeStyleApp.Application.Services
             if (user == null || HashPassword(model.Password) != user.PasswordHash)
             {
                 throw new AppException("Tên đăng nhập hoặc mật khẩu không chính xác.");
+            }
+
+            if (!user.IsActive)
+            {
+                throw new AppException("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.");
             }
 
             return user;

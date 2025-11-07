@@ -40,6 +40,8 @@
                 <tr>
                     <th><a asp-action="Index" asp-route-sortOrder="@ViewData["UserNameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Tên đăng nhập</a></th>
                     <th><a asp-action="Index" asp-route-sortOrder="@ViewData["NameSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">Họ và Tên</a></th>
+                    <th>Email</th>
+                    <th class="text-center">Trạng thái</th>
                     <th class="text-center">Thao tác</th>
                 </tr>
             </thead>
@@ -49,8 +51,11 @@
                     <tr>
                         <td>@user.UserName</td>
                         <td>@user.FullName</td>
+                        <td>@(user.Email ?? "-")</td>
+                        <td class="text-center">@(user.IsActive ? "Active" : "Inactive")</td>
                         <td class="text-center">
                             <button class="btn btn-primary btn-circle btn-sm" title="Sửa" onclick="openUserModal('@user.Id')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-info btn-circle btn-sm" title="Gửi mật khẩu" onclick="sendPassword('@user.Id', '@user.UserName', '@(user.Email ?? "")')"><i class="fas fa-envelope"></i></button>
                             <button class="btn btn-danger btn-circle btn-sm" title="Xóa" onclick="deleteUser('@user.Id', '@user.UserName')"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
@@ -109,8 +114,18 @@
                         </div>
                     </div>
                     <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" />
+                    </div>
+                    <div class="mb-3">
                         <label for="password" class="form-label">Mật khẩu</label>
                         <input type="password" class="form-control" id="password" autocomplete="new-password" />
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isActive">
+                            <label class="form-check-label" for="isActive">Tài khoản đang hoạt động</label>
+                        </div>
                     </div>
                     <hr />
                     <h5>Phân quyền</h5>
@@ -164,6 +179,8 @@
                         $('#userId').val(data.id);
                         $('#username').val(data.userName);
                         $('#fullName').val(data.fullName);
+                        $('#email').val(data.email || '');
+                        $('#isActive').prop('checked', data.isActive === true);
 
                         let userPermissions = data.permissions || [];
                         document.querySelectorAll('#permissionsContainer .form-check-input').forEach(checkbox => {
@@ -192,6 +209,8 @@
                 id: $('#userId').val(),
                 userName: $('#username').val(),
                 fullName: $('#fullName').val(),
+                email: $('#email').val(),
+                isActive: $('#isActive').is(':checked'),
                 password: $('#password').val(),
                 permissions: selectedPermissions
             };
@@ -214,18 +233,47 @@
         }
 
             function deleteUser(userId, username) {
-            if (confirm(`Bạn có chắc chắn muốn xóa người dùng '${username}' không? Hành động này không thể hoàn tác.`)) {
-                fetch(`/User/DeleteUser?id=${userId}`, { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                             showDialog(data.message, true);
-                             setTimeout(() => window.location.reload(), 1500);
-                        } else {
-                             showDialog(data.message, false);
-                        }
-                    });
+                const message = `Bạn có chắc chắn muốn xóa người dùng '<strong>${username}</strong>' không?<br><br><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> <strong>LƯU Ý:</strong> Hành động này không thể hoàn tác.</small>`;
+                
+                showConfirmDialog(message, function() {
+                    fetch(`/User/DeleteUser?id=${userId}`, { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                showDialog(data.message, true);
+                                setTimeout(() => window.location.reload(), 1500);
+                            } else {
+                                showDialog(data.message, false);
+                            }
+                        })
+                        .catch(error => {
+                            showDialog('Đã xảy ra lỗi khi xóa người dùng. Vui lòng thử lại.', false);
+                        });
+                });
             }
-        }
+
+            function sendPassword(userId, username, email) {
+                if (!email || email.trim() === '') {
+                    showDialog('Người dùng chưa có email. Vui lòng cập nhật email trước khi gửi mật khẩu.', false);
+                    return;
+                }
+
+                const message = `Bạn có chắc chắn muốn gửi mật khẩu mới đến email <strong>${email}</strong> cho người dùng '<strong>${username}</strong>' không?<br><br><small class="text-info"><i class="fas fa-info-circle"></i> Mật khẩu mới sẽ được tạo tự động và gửi qua email.</small>`;
+                
+                showConfirmDialog(message, function() {
+                    fetch(`/User/SendPassword?id=${userId}`, { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                showDialog(data.message, true);
+                            } else {
+                                showDialog(data.message, false);
+                            }
+                        })
+                        .catch(error => {
+                            showDialog('Đã xảy ra lỗi khi gửi mật khẩu. Vui lòng thử lại.', false);
+                        });
+                });
+            }
     </script>
 }

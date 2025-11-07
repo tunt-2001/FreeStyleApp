@@ -74,7 +74,9 @@ namespace FreeStyleApp.Controllers
                     u.Id,
                     u.UserName,
                     u.FullName,
-                    Permissions = u.UserPermissions.Select(p => p.Permission.Code).ToList()
+                    u.Email,
+                    u.IsActive,
+                    Permissions = u.UserPermissions.Select(p => p.PermissionId).ToList()
                 })
                 .FirstOrDefaultAsync();
 
@@ -87,7 +89,8 @@ namespace FreeStyleApp.Controllers
         {
             if (!UserHasPermission("Admin")) return Forbid();
 
-            var savedUser = await _userService.SaveUserAsync(model, User.Identity.Name);
+            var actionUser = User.Identity?.Name ?? "System";
+            var savedUser = await _userService.SaveUserAsync(model, actionUser);
             string actionType = string.IsNullOrEmpty(model.Id) ? "Tạo người dùng" : "Cập nhật người dùng";
             await LogAuditAsync(actionType, $"Lưu thành công người dùng '{savedUser.UserName}'.");
 
@@ -100,7 +103,8 @@ namespace FreeStyleApp.Controllers
             if (!UserHasPermission("Admin")) return Forbid();
 
             var userToDelete = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-            await _userService.DeleteUserAsync(id, User.Identity.Name);
+            var actionUser = User.Identity?.Name ?? "System";
+            await _userService.DeleteUserAsync(id, actionUser);
 
             if (userToDelete != null)
             {
@@ -108,6 +112,31 @@ namespace FreeStyleApp.Controllers
             }
 
             return Ok(new { success = true, message = "Xóa người dùng thành công." });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SendPassword(string id)
+        {
+            if (!UserHasPermission("Admin")) return Forbid();
+
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                return BadRequest(new { success = false, message = "Không tìm thấy người dùng." });
+            }
+
+            var actionUser = User.Identity?.Name ?? "System";
+            try
+            {
+                var newPassword = await _userService.GenerateAndSendPasswordAsync(id, actionUser);
+                await LogAuditAsync("Gửi mật khẩu", $"Đã gửi mật khẩu mới đến email của người dùng '{user.UserName}'.");
+                return Ok(new { success = true, message = $"Đã gửi mật khẩu mới đến email {user.Email}." });
+            }
+            catch (Exception ex)
+            {
+                await LogAuditAsync("Gửi mật khẩu thất bại", $"Không thể gửi mật khẩu cho người dùng '{user.UserName}': {ex.Message}");
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         #region Helper Methods

@@ -1,4 +1,5 @@
-﻿using FreeStyleApp.Application.Interfaces;
+﻿using FreeStyleApp.Application.Exceptions;
+using FreeStyleApp.Application.Interfaces;
 using FreeStyleApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

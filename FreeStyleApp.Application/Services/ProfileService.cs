@@ -1,4 +1,5 @@
 ﻿using FreeStyleApp.Application.DTOs;
+using FreeStyleApp.Application.Exceptions;
 using FreeStyleApp.Application.Interfaces;
 using FreeStyleApp.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -11,11 +12,13 @@ namespace FreeStyleApp.Application.Services
     {
         private readonly IAppDbContext _context;
         private readonly ILogger<ProfileService> _logger;
+        private readonly PasswordValidator _passwordValidator;
 
-        public ProfileService(IAppDbContext context, ILogger<ProfileService> logger)
+        public ProfileService(IAppDbContext context, ILogger<ProfileService> logger, PasswordValidator passwordValidator)
         {
             _context = context;
             _logger = logger;
+            _passwordValidator = passwordValidator;
         }
 
         public async Task ChangePasswordAsync(string userId, ChangePasswordDto model, string actionUser)
@@ -32,6 +35,13 @@ namespace FreeStyleApp.Application.Services
                 _context.AuditLogs.Add(new AuditLog { Timestamp = DateTime.UtcNow, UserName = actionUser, ActionType = "Đổi mật khẩu thất bại", Details = "Nhập sai mật khẩu cũ." });
                 await _context.SaveChangesAsync();
                 throw new AppException("Mật khẩu cũ không chính xác.");
+            }
+
+            // Validate mật khẩu mới theo settings
+            var (isValid, errorMessage) = await _passwordValidator.ValidatePasswordAsync(model.NewPassword);
+            if (!isValid)
+            {
+                throw new AppException(errorMessage);
             }
 
             user.PasswordHash = HashPassword(model.NewPassword);

@@ -37,6 +37,7 @@
         <i class="fas fa-angle-up"></i>
     </a>
 
+    <!-- Modal thông báo -->
     <div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -54,6 +55,27 @@
         </div>
     </div>
 
+    <!-- Modal xác nhận -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="confirmModalLabel">
+                        <i class="fas fa-exclamation-triangle"></i> Xác nhận
+                    </h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="confirmModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="confirmModalOkBtn">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="~/vendor/jquery/jquery.min.js"></script>
     <script src="~/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/vendor/jquery-easing/jquery.easing.min.js"></script>
@@ -61,20 +83,51 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>
+        // Hàm hiển thị thông báo (success/error) - dùng Bootstrap 4 (jQuery)
         function showDialog(message, isSuccess) {
-            const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
-            const modalHeader = document.getElementById('notificationModalHeader');
-            const modalBody = document.getElementById('notificationModalBody');
+            var $modal = $('#notificationModal');
+            var $modalHeader = $('#notificationModalHeader');
+            var $modalLabel = $('#notificationModalLabel');
+            var $modalBody = $('#notificationModalBody');
 
-            modalHeader.classList.remove('bg-success', 'bg-danger');
+            $modalHeader.removeClass('bg-success bg-danger');
             if (isSuccess) {
-                modalHeader.classList.add('bg-success');
+                $modalHeader.addClass('bg-success');
+                $modalLabel.html('<i class="fas fa-check-circle"></i> Thành công');
             } else {
-                modalHeader.classList.add('bg-danger');
+                $modalHeader.addClass('bg-danger');
+                $modalLabel.html('<i class="fas fa-exclamation-circle"></i> Lỗi');
             }
 
-            modalBody.innerHTML = message;
-            modal.show();
+            $modalBody.html('<p class="mb-0">' + message + '</p>');
+            $modal.modal('show');
+        }
+
+        // Hàm hiển thị dialog xác nhận
+        let confirmCallback = null;
+        
+        function showConfirmDialog(message, onConfirm) {
+            var $modal = $('#confirmModal');
+            var $modalBody = $('#confirmModalBody');
+            var $confirmBtn = $('#confirmModalOkBtn');
+
+            $modalBody.html(message);
+            confirmCallback = onConfirm;
+
+            // Thay mới nút để clear mọi handler cũ
+            var $newBtn = $confirmBtn.clone(true);
+            $confirmBtn.replaceWith($newBtn);
+            $newBtn = $('#confirmModalOkBtn');
+
+            $newBtn.off('click').on('click', function () {
+                $('#confirmModal').modal('hide');
+                if (confirmCallback && typeof confirmCallback === 'function') {
+                    confirmCallback();
+                }
+                confirmCallback = null;
+            });
+
+            $modal.modal('show');
         }
     </script>
 

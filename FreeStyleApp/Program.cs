@@ -51,8 +51,10 @@ try
     //    Ví dụ: Đăng ký IUserService và triển khai của nó là UserService
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped<IAccountService, AccountService>();
-    builder.Services.AddScoped<IPermissionService, PermissionService>(); // Thêm dòng này
+    builder.Services.AddScoped<IPermissionService, PermissionService>();
     builder.Services.AddScoped<IProfileService, ProfileService>();
+    builder.Services.AddScoped<IEmailService, EmailService>();
+    builder.Services.AddScoped<PasswordValidator>();
 
     // Bạn sẽ thêm các đăng ký service khác ở đây trong tương lai, ví dụ:
     // builder.Services.AddScoped<IPatientService, PatientService>();
@@ -63,11 +65,15 @@ try
 
 
     // Cấu hình Authentication
+    // Session timeout sẽ được áp dụng khi đăng nhập (trong AccountController)
     builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
         .AddCookie(options =>
         {
             options.LoginPath = "/Account/Login";
             options.AccessDeniedPath = "/Home/AccessDenied";
+            // Mặc định 8 giờ (480 phút) - sẽ được override khi đăng nhập
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(480);
+            options.SlidingExpiration = true;
         });
 
     builder.Services.AddControllersWithViews();

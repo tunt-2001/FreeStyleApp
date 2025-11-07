@@ -1,6 +1,6 @@
 ﻿using FreeStyleApp.Application.DTOs;
+using FreeStyleApp.Application.Exceptions;
 using FreeStyleApp.Application.Interfaces;
-using FreeStyleApp.Application.Services;
 using FreeStyleApp.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -13,6 +13,7 @@ namespace FreeStyleApp.Controllers
     {
         private readonly IAccountService _accountService;
         private readonly IAppDbContext _context;
+        
 
         public AccountController(IAccountService accountService, IAppDbContext context)
         {
@@ -23,7 +24,7 @@ namespace FreeStyleApp.Controllers
         [HttpGet]
         public IActionResult Login()
         {
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
                 return RedirectToAction("Index", "Home");
             }
@@ -49,7 +50,7 @@ namespace FreeStyleApp.Controllers
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) };
+                var authProperties = new AuthenticationProperties();
 
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
                 return Ok(new { success = true, redirectUrl = Url.Action("Index", "Home") });
@@ -64,7 +65,8 @@ namespace FreeStyleApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Logout()
         {
-            await LogAuditAsync(User.Identity.Name, "Đăng xuất", "Người dùng đã đăng xuất.");
+            var userName = User.Identity?.Name ?? "Unknown";
+            await LogAuditAsync(userName, "Đăng xuất", "Người dùng đã đăng xuất.");
             await HttpContext.SignOutAsync();
             return RedirectToAction("Login");
         }

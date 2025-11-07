@@ -1,4 +1,4 @@
-﻿using FreeStyleApp.Application.Services; // Cần thiết để nhận biết lớp AppException
+﻿using FreeStyleApp.Application.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;

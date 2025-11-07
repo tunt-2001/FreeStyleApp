@@ -8,6 +8,76 @@
     <h1 class="h3 mb-0 text-gray-800">@ViewData["Title"]</h1>
 </div>
 
+@* Phần chung cho mọi người dùng *@
+<div class="row">
+    <div class="col-xl-6 col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thông tin của tôi</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2"><strong>Tài khoản:</strong> @User?.Identity?.Name</div>
+                <div class="mb-2">
+                    <strong>Quyền của tôi:</strong>
+                    <div>
+                        @if (ViewBag.MyPermissions is IEnumerable<string> myPerms && myPerms.Any())
+                        {
+                            foreach (var p in myPerms)
+                            {
+                                <span class="badge badge-secondary mr-1">@p</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Không có</span>
+                        }
+                    </div>
+                </div>
+                <div class="mb-2"><strong>Đăng nhập gần nhất:</strong> @((ViewBag.MyLastLogin == DateTime.MinValue || ViewBag.MyLastLogin == null) ? "—" : ((DateTime)ViewBag.MyLastLogin).ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</div>
+                <div class="mb-2"><strong>Thất bại hôm nay:</strong> @ViewBag.MyFailedLoginsToday</div>
+                <div class="mt-3 d-flex flex-wrap">
+                    <a class="btn btn-sm btn-outline-primary mr-2 mb-2" asp-controller="Profile" asp-action="Index"><i class="fas fa-key"></i> Đổi mật khẩu</a>
+                    <a class="btn btn-sm btn-outline-secondary mb-2" asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Hoạt động gần đây của tôi</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    @if (ViewBag.MyRecentActivities is IEnumerable<AuditLog> myLogs && myLogs.Any())
+                    {
+                        foreach (var log in myLogs)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div>
+                                    <small class="text-muted">@log.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</small>
+                                    <p class="mb-0">
+                                        <strong>@log.ActionType</strong>
+                                        <br />
+                                        <em>@log.Details</em>
+                                    </p>
+                                </div>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="list-group-item"><span class="text-muted">Chưa có hoạt động nào.</span></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Phần dành cho admin *@
+@if (ViewBag.IsAdmin == true)
+{
 <div class="row">
     <div class="col-xl-4 col-md-6 mb-4">
         <div class="card border-left-primary shadow h-100 py-2">
@@ -54,7 +124,84 @@
             </div>
         </div>
     </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Đăng nhập thất bại (Hôm nay)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.FailedLoginsToday</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-exclamation-triangle-fill h2 text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Tài khoản Active</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.ActiveUsers</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-person-check-fill h2 text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Tài khoản bị khóa</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.LockedUsers</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-person-x-fill h2 text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div class="row">
+    <div class="col-xl-6 col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Hành động nhanh</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap">
+                    <a class="btn btn-sm btn-primary mr-2 mb-2" asp-controller="User" asp-action="Index"><i class="fas fa-user-plus"></i> Quản lý người dùng</a>
+                    <a class="btn btn-sm btn-warning mr-2 mb-2" asp-controller="SystemManagement" asp-action="Index"><i class="fas fa-server"></i> Quản lý hệ thống</a>
+                    <a class="btn btn-sm btn-info mr-2 mb-2" asp-controller="AuditLog" asp-action="Index"><i class="fas fa-history"></i> Nhật ký hoạt động</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Trạng thái nhanh</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-database text-success"></i> Database: <span class="badge badge-success">OK</span></li>
+                    <li><i class="fas fa-file-alt text-secondary"></i> Logs: <span class="badge badge-secondary">Theo dõi</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+}
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
