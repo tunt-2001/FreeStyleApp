@@ -12,6 +12,9 @@ namespace FreeStyleApp.Infrastructure
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<FeatureGroup> FeatureGroups { get; set; }
+        public DbSet<Feature> Features { get; set; }
+        public DbSet<UserFeatureGroup> UserFeatureGroups { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +34,20 @@ namespace FreeStyleApp.Infrastructure
                 entity.HasOne(up => up.Permission)
                       .WithMany()
                       .HasForeignKey(up => up.PermissionId);
+            });
+
+            // Cấu hình UserFeatureGroup
+            modelBuilder.Entity<UserFeatureGroup>(entity =>
+            {
+                entity.HasKey(ufg => new { ufg.UserId, ufg.FeatureGroupId });
+
+                entity.HasOne(ufg => ufg.User)
+                      .WithMany()
+                      .HasForeignKey(ufg => ufg.UserId);
+
+                entity.HasOne(ufg => ufg.FeatureGroup)
+                      .WithMany(fg => fg.UserFeatureGroups)
+                      .HasForeignKey(ufg => ufg.FeatureGroupId);
             });
         }
     }

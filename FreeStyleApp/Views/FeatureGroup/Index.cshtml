@@ -1,0 +1,478 @@
+@using FreeStyleApp.Application.DTOs
+@model List<FeatureGroupDto>
+@{
+    ViewData["Title"] = "Quản lý Nhóm chức năng";
+}
+
+<h1 class="h3 mb-2 text-gray-800">@ViewData["Title"]</h1>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Nhóm chức năng</h6>
+                <button class="btn btn-primary btn-sm" onclick="openFeatureGroupModal(null)">
+                    <i class="fas fa-plus"></i> Thêm nhóm
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Tên nhóm</th>
+                                <th>Thứ tự</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var group in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(group.Icon))
+                                        {
+                                            <i class="@group.Icon"></i>
+                                        }
+                                        @group.Name
+                                    </td>
+                                    <td>@group.DisplayOrder</td>
+                                    <td>
+                                        @if (group.IsActive)
+                                        {
+                                            <span class="badge badge-success">Hoạt động</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">Tạm dừng</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="openFeatureGroupModal('@group.Id')" title="Sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteFeatureGroup('@group.Id')" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="loadFeatures('@group.Id', '@group.Name')" title="Xem chức năng">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary" id="featureGroupTitle">Chức năng</h6>
+                <button class="btn btn-success btn-sm" id="btnAddFeature" onclick="openFeatureModal(null)" style="display:none;">
+                    <i class="fas fa-plus"></i> Thêm chức năng
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="featuresContainer">
+                    <p class="text-muted">Chọn một nhóm chức năng để xem danh sách chức năng</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal FeatureGroup -->
+<div class="modal fade" id="featureGroupModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="featureGroupModalTitle">Thêm nhóm chức năng</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="featureGroupForm">
+                    <input type="hidden" id="featureGroupId" />
+                    <div class="form-group">
+                        <label>Tên nhóm <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="featureGroupName" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Mô tả</label>
+                        <textarea class="form-control" id="featureGroupDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon (Font Awesome class, VD: fas fa-users)</label>
+                        <input type="text" class="form-control" id="featureGroupIcon" placeholder="fas fa-users" />
+                    </div>
+                    <div class="form-group">
+                        <label>Thứ tự hiển thị</label>
+                        <input type="number" class="form-control" id="featureGroupDisplayOrder" value="0" />
+                    </div>
+                    <div class="form-group" id="featureGroupIsActiveGroup" style="display:none;">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="featureGroupIsActive" />
+                            <label class="form-check-label" for="featureGroupIsActive">Hoạt động</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveFeatureGroup()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Feature -->
+<div class="modal fade" id="featureModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="featureModalTitle">Thêm chức năng</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="featureForm">
+                    <input type="hidden" id="featureId" />
+                    <input type="hidden" id="featureFeatureGroupId" />
+                    <div class="form-group">
+                        <label>Tên chức năng <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="featureName" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Controller</label>
+                        <select class="form-control" id="featureController">
+                            <option value="">-- Chọn Controller --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: none;">
+                        <label>Action</label>
+                        <select class="form-control" id="featureAction">
+                            <option value="Index" selected>Index</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="featureActionHidden" value="Index" />
+                    <div class="form-group">
+                        <label>Icon (Font Awesome class, VD: fas fa-user)</label>
+                        <input type="text" class="form-control" id="featureIcon" placeholder="fas fa-user" />
+                    </div>
+                    <div class="form-group">
+                        <label>Thứ tự hiển thị</label>
+                        <input type="number" class="form-control" id="featureDisplayOrder" value="0" />
+                    </div>
+                    <div class="form-group" id="featureIsActiveGroup" style="display:none;">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="featureIsActive" />
+                            <label class="form-check-label" for="featureIsActive">Hoạt động</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveFeature()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentFeatureGroupId = null;
+        let controllersData = [];
+
+        // Load danh sách Controllers và Actions khi trang được load
+        $(document).ready(function() {
+            $.get('/FeatureGroup/GetControllersAndActions', function(response) {
+                if (response.success) {
+                    controllersData = response.data;
+                    populateControllers();
+                    
+                    // Event handler khi chọn Controller
+                    $('#featureController').on('change', function() {
+                        const controllerName = $(this).val();
+                        populateActions(controllerName);
+                    });
+                }
+            });
+        });
+
+        function populateControllers() {
+            const $controllerSelect = $('#featureController');
+            $controllerSelect.empty();
+            $controllerSelect.append('<option value="">-- Chọn Controller --</option>');
+            
+            controllersData.forEach(function(controller) {
+                $controllerSelect.append(`<option value="${controller.controllerName}">${controller.controllerName}</option>`);
+            });
+        }
+
+        function populateActions(controllerName) {
+            const $actionSelect = $('#featureAction');
+            $actionSelect.empty();
+            
+            if (!controllerName || controllerName === '') {
+                $actionSelect.append('<option value="Index" selected>Index</option>');
+                return;
+            }
+            
+            const controller = controllersData.find(c => c.controllerName === controllerName);
+            if (controller && controller.actions && controller.actions.length > 0) {
+                controller.actions.forEach(function(action) {
+                    const selected = action === 'Index' ? 'selected' : '';
+                    $actionSelect.append(`<option value="${action}" ${selected}>${action}</option>`);
+                });
+            } else {
+                $actionSelect.append('<option value="Index" selected>Index</option>');
+            }
+        }
+
+        function openFeatureGroupModal(id) {
+            $('#featureGroupId').val(id || '');
+            $('#featureGroupName').val('');
+            $('#featureGroupDescription').val('');
+            $('#featureGroupIcon').val('');
+            $('#featureGroupDisplayOrder').val('0');
+            $('#featureGroupIsActive').prop('checked', true);
+            
+            if (id) {
+                $('#featureGroupModalTitle').text('Sửa nhóm chức năng');
+                $('#featureGroupIsActiveGroup').show();
+                loadFeatureGroup(id);
+            } else {
+                $('#featureGroupModalTitle').text('Thêm nhóm chức năng');
+                $('#featureGroupIsActiveGroup').hide();
+            }
+            
+            $('#featureGroupModal').modal('show');
+        }
+
+        function loadFeatureGroup(id) {
+            $.get('/FeatureGroup/GetFeatureGroup', { id: id }, function(response) {
+                if (response.success) {
+                    const group = response.data;
+                    $('#featureGroupId').val(group.id);
+                    $('#featureGroupName').val(group.name);
+                    $('#featureGroupDescription').val(group.description || '');
+                    $('#featureGroupIcon').val(group.icon || '');
+                    $('#featureGroupDisplayOrder').val(group.displayOrder);
+                    $('#featureGroupIsActive').prop('checked', group.isActive);
+                } else {
+                    showDialog('Lỗi', response.message);
+                }
+            });
+        }
+
+        function saveFeatureGroup() {
+            const id = $('#featureGroupId').val();
+            const data = {
+                id: id || undefined,
+                name: $('#featureGroupName').val(),
+                description: $('#featureGroupDescription').val(),
+                icon: $('#featureGroupIcon').val(),
+                displayOrder: parseInt($('#featureGroupDisplayOrder').val()) || 0,
+                isActive: $('#featureGroupIsActive').is(':checked')
+            };
+
+            if (!data.name) {
+                showDialog('Lỗi', 'Vui lòng nhập tên nhóm chức năng');
+                return;
+            }
+
+            const url = id ? '/FeatureGroup/UpdateFeatureGroup' : '/FeatureGroup/SaveFeatureGroup';
+            $.ajax({
+                url: url,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.success) {
+                        showDialog('Thành công', response.message);
+                        $('#featureGroupModal').modal('hide');
+                        location.reload();
+                    } else {
+                        showDialog('Lỗi', response.message);
+                    }
+                },
+                error: function() {
+                    showDialog('Lỗi', 'Có lỗi xảy ra khi lưu nhóm chức năng');
+                }
+            });
+        }
+
+        function deleteFeatureGroup(id) {
+            showConfirmDialog('Xác nhận', 'Bạn có chắc muốn xóa nhóm chức năng này?', function() {
+                $.post('/FeatureGroup/DeleteFeatureGroup', { id: id }, function(response) {
+                    if (response.success) {
+                        showDialog('Thành công', response.message);
+                        location.reload();
+                    } else {
+                        showDialog('Lỗi', response.message);
+                    }
+                });
+            });
+        }
+
+        function loadFeatures(groupId, groupName) {
+            currentFeatureGroupId = groupId;
+            $('#featureGroupTitle').text(`Chức năng - ${groupName}`);
+            $('#btnAddFeature').show();
+            
+            $.get('/FeatureGroup/GetFeaturesByGroupId', { groupId: groupId }, function(response) {
+                if (response.success) {
+                    const features = response.data;
+                    let html = '<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Tên</th><th>Controller/Action</th><th>Thứ tự</th><th>Thao tác</th></tr></thead><tbody>';
+                    
+                    if (features.length === 0) {
+                        html += '<tr><td colspan="4" class="text-center text-muted">Chưa có chức năng nào</td></tr>';
+                    } else {
+                        features.forEach(function(feature) {
+                            const controllerAction = (feature.controller || '') + (feature.action ? '/' + feature.action : '');
+                            html += `<tr>
+                                <td>${feature.icon ? `<i class="${feature.icon}"></i> ` : ''}${feature.name}</td>
+                                <td>${controllerAction || '-'}</td>
+                                <td>${feature.displayOrder}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="openFeatureModal('${feature.id}')" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteFeature('${feature.id}')" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    
+                    html += '</tbody></table></div>';
+                    $('#featuresContainer').html(html);
+                } else {
+                    showDialog('Lỗi', response.message);
+                }
+            });
+        }
+
+        function openFeatureModal(id) {
+            if (!currentFeatureGroupId) {
+                showDialog('Lỗi', 'Vui lòng chọn nhóm chức năng trước');
+                return;
+            }
+
+            // Reset form
+            $('#featureId').val(id || '');
+            $('#featureFeatureGroupId').val(currentFeatureGroupId);
+            $('#featureName').val('');
+            $('#featureIcon').val('');
+            $('#featureDisplayOrder').val('0');
+            $('#featureIsActive').prop('checked', true);
+            
+            // Reset dropdowns
+            populateControllers();
+            // Action mặc định là Index (ẩn dropdown)
+            $('#featureAction').val('Index');
+            $('#featureActionHidden').val('Index');
+            
+            if (id) {
+                $('#featureModalTitle').text('Sửa chức năng');
+                $('#featureIsActiveGroup').show();
+                loadFeature(id);
+            } else {
+                $('#featureModalTitle').text('Thêm chức năng');
+                $('#featureIsActiveGroup').hide();
+            }
+            
+            $('#featureModal').modal('show');
+        }
+
+        function loadFeature(id) {
+            $.get('/FeatureGroup/GetFeature', { id: id }, function(response) {
+                if (response.success) {
+                    const feature = response.data;
+                    $('#featureId').val(feature.id);
+                    $('#featureFeatureGroupId').val(feature.featureGroupId);
+                    $('#featureName').val(feature.name);
+                    $('#featureIcon').val(feature.icon || '');
+                    $('#featureDisplayOrder').val(feature.displayOrder);
+                    $('#featureIsActive').prop('checked', feature.isActive);
+                    
+                    // Set Controller (Action mặc định là Index, không cần set)
+                    if (feature.controller) {
+                        $('#featureController').val(feature.controller);
+                    }
+                    // Action luôn là Index (đã ẩn dropdown)
+                    $('#featureAction').val('Index');
+                    $('#featureActionHidden').val('Index');
+                } else {
+                    showDialog('Lỗi', response.message);
+                }
+            });
+        }
+
+        function saveFeature() {
+            const id = $('#featureId').val();
+            const data = {
+                id: id || undefined,
+                name: $('#featureName').val(),
+                controller: $('#featureController').val(),
+                action: 'Index', // Luôn mặc định là Index
+                icon: $('#featureIcon').val(),
+                featureGroupId: $('#featureFeatureGroupId').val(),
+                displayOrder: parseInt($('#featureDisplayOrder').val()) || 0,
+                isActive: $('#featureIsActive').is(':checked')
+            };
+
+            if (!data.name) {
+                showDialog('Lỗi', 'Vui lòng nhập tên chức năng');
+                return;
+            }
+
+            if (!data.featureGroupId) {
+                showDialog('Lỗi', 'Vui lòng chọn nhóm chức năng');
+                return;
+            }
+
+            const url = id ? '/FeatureGroup/UpdateFeature' : '/FeatureGroup/SaveFeature';
+            $.ajax({
+                url: url,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.success) {
+                        showDialog('Thành công', response.message);
+                        $('#featureModal').modal('hide');
+                        loadFeatures(currentFeatureGroupId, $('#featureGroupTitle').text().replace('Chức năng - ', ''));
+                    } else {
+                        showDialog('Lỗi', response.message);
+                    }
+                },
+                error: function() {
+                    showDialog('Lỗi', 'Có lỗi xảy ra khi lưu chức năng');
+                }
+            });
+        }
+
+        function deleteFeature(id) {
+            showConfirmDialog('Xác nhận', 'Bạn có chắc muốn xóa chức năng này?', function() {
+                $.post('/FeatureGroup/DeleteFeature', { id: id }, function(response) {
+                    if (response.success) {
+                        showDialog('Thành công', response.message);
+                        loadFeatures(currentFeatureGroupId, $('#featureGroupTitle').text().replace('Chức năng - ', ''));
+                    } else {
+                        showDialog('Lỗi', response.message);
+                    }
+                });
+            });
+        }
+    </script>
+}
+

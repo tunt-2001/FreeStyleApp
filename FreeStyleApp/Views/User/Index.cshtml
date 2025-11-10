@@ -55,6 +55,7 @@
                         <td class="text-center">@(user.IsActive ? "Active" : "Inactive")</td>
                         <td class="text-center">
                             <button class="btn btn-primary btn-circle btn-sm" title="Sửa" onclick="openUserModal('@user.Id')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-success btn-circle btn-sm" title="Gán nhóm chức năng" onclick="openAssignFeatureGroupsModal('@user.Id', '@user.UserName')"><i class="fas fa-list"></i></button>
                             <button class="btn btn-info btn-circle btn-sm" title="Gửi mật khẩu" onclick="sendPassword('@user.Id', '@user.UserName', '@(user.Email ?? "")')"><i class="fas fa-envelope"></i></button>
                             <button class="btn btn-danger btn-circle btn-sm" title="Xóa" onclick="deleteUser('@user.Id', '@user.UserName')"><i class="fas fa-trash"></i></button>
                         </td>
@@ -148,6 +149,31 @@
                 @* Sửa data-bs-dismiss thành data-dismiss *@
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy bỏ</button>
                 <button type="button" class="btn btn-primary" onclick="saveUser()">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gán nhóm chức năng -->
+<div class="modal fade" id="assignFeatureGroupsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gán nhóm chức năng</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Người dùng:</strong> <span id="assignUserName"></span></p>
+                <hr />
+                <div id="featureGroupsContainer">
+                    <p class="text-muted">Đang tải...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-primary" onclick="saveFeatureGroupsAssignment()">Lưu</button>
             </div>
         </div>
     </div>
@@ -273,6 +299,68 @@
                         .catch(error => {
                             showDialog('Đã xảy ra lỗi khi gửi mật khẩu. Vui lòng thử lại.', false);
                         });
+                });
+            }
+
+            let currentAssignUserId = null;
+
+            function openAssignFeatureGroupsModal(userId, userName) {
+                currentAssignUserId = userId;
+                $('#assignUserName').text(userName);
+                $('#featureGroupsContainer').html('<p class="text-muted">Đang tải...</p>');
+                $('#assignFeatureGroupsModal').modal('show');
+
+                $.get('/FeatureGroup/GetUserFeatureGroups', { userId: userId }, function(response) {
+                    if (response.success) {
+                        let html = '<div class="row">';
+                        response.allGroups.forEach(function(group) {
+                            const isChecked = response.assignedGroups.includes(group.id);
+                            html += `<div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="${group.id}" id="fg_${group.id}" ${isChecked ? 'checked' : ''}>
+                                    <label class="form-check-label" for="fg_${group.id}">
+                                        ${group.icon ? `<i class="${group.icon}"></i> ` : ''}${group.name}
+                                    </label>
+                                </div>
+                            </div>`;
+                        });
+                        html += '</div>';
+                        $('#featureGroupsContainer').html(html);
+                    } else {
+                        $('#featureGroupsContainer').html('<p class="text-danger">Lỗi khi tải danh sách nhóm chức năng</p>');
+                    }
+                });
+            }
+
+            function saveFeatureGroupsAssignment() {
+                if (!currentAssignUserId) return;
+
+                const selectedGroups = [];
+                $('#featureGroupsContainer input[type="checkbox"]:checked').each(function() {
+                    selectedGroups.push($(this).val());
+                });
+
+                const data = {
+                    userId: currentAssignUserId,
+                    featureGroupIds: selectedGroups
+                };
+
+                $.ajax({
+                    url: '/FeatureGroup/AssignFeatureGroupsToUser',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(response) {
+                        if (response.success) {
+                            showDialog(response.message, true);
+                            $('#assignFeatureGroupsModal').modal('hide');
+                        } else {
+                            showDialog(response.message, false);
+                        }
+                    },
+                    error: function() {
+                        showDialog('Có lỗi xảy ra khi gán nhóm chức năng', false);
+                    }
                 });
             }
     </script>

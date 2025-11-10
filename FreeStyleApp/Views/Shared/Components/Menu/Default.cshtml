@@ -1,0 +1,92 @@
+@using FreeStyleApp.Application.DTOs
+@model List<FeatureGroupDto>
+
+@if (Model != null && Model.Any())
+{
+    @foreach (var group in Model.OrderBy(g => g.DisplayOrder))
+    {
+        var collapseId = $"collapse-{group.Id.Replace("-", "")}";
+        
+        <hr class="sidebar-divider">
+        
+        <div class="sidebar-heading collapsed d-flex align-items-center justify-content-between feature-group-toggle" data-collapse-id="@collapseId" style="cursor: pointer; text-decoration: none; user-select: none; padding: 0.75rem 1rem;">
+            <span>
+                @if (!string.IsNullOrEmpty(group.Icon))
+                {
+                    <i class="@group.Icon"></i>
+                }
+                @group.Name
+            </span>
+            <i class="fas fa-chevron-down collapse-icon" style="font-size: 0.7rem; transition: transform 0.3s ease;"></i>
+        </div>
+
+        <div id="@collapseId" class="feature-group-content collapse" style="display: none;">
+            <ul class="nav">
+                @foreach (var feature in group.Features.OrderBy(f => f.DisplayOrder))
+                {
+                    <li class="nav-item">
+                        <a class="nav-link feature-link" href="@Url.Action(feature.Action ?? "Index", feature.Controller ?? "Home")">
+                            @if (!string.IsNullOrEmpty(feature.Icon))
+                            {
+                                <i class="@feature.Icon"></i>
+                            }
+                            else
+                            {
+                                <i class="fas fa-fw fa-circle"></i>
+                            }
+                            <span>@feature.Name</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+}
+else
+{
+    @* Menu mặc định cho admin nếu chưa có cấu hình *@
+    @if (User.Claims.Any(c => c.Value.Contains("Admin")))
+    {
+        <hr class="sidebar-divider">
+        <div class="sidebar-heading">
+            Quản trị hệ thống
+        </div>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="User" asp-action="Index">
+                <i class="fas fa-fw fa-users"></i>
+                <span>Quản lý Người dùng</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Permission" asp-action="Index">
+                <i class="fas fa-fw fa-shield-alt"></i>
+                <span>Quản lý vai trò</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="FeatureGroup" asp-action="Index">
+                <i class="fas fa-fw fa-list"></i>
+                <span>Cấu hình Menu</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="AuditLog" asp-action="Index">
+                <i class="fas fa-fw fa-history"></i>
+                <span>Nhật ký hoạt động</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Reports" asp-action="Index">
+                <i class="fas fa-fw fa-chart-bar"></i>
+                <span>Báo cáo và thống kê</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="SystemManagement" asp-action="Index">
+                <i class="fas fa-fw fa-server"></i>
+                <span>Quản lý hệ thống</span>
+            </a>
+        </li>
+    }
+}
+

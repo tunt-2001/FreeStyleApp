@@ -54,10 +54,8 @@ try
     builder.Services.AddScoped<IPermissionService, PermissionService>();
     builder.Services.AddScoped<IProfileService, ProfileService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
+    builder.Services.AddScoped<IFeatureGroupService, FeatureGroupService>();
     builder.Services.AddScoped<PasswordValidator>();
-
-    // Bạn sẽ thêm các đăng ký service khác ở đây trong tương lai, ví dụ:
-    // builder.Services.AddScoped<IPatientService, PatientService>();
 
     // =================================================================
     // === KẾT THÚC: CẤU HÌNH DEPENDENCY INJECTION ===

@@ -129,6 +129,151 @@
 
             $modal.modal('show');
         }
+
+        // Hàm lưu trạng thái mở/đóng của groups vào localStorage
+        function saveGroupState(collapseId, isOpen) {
+            try {
+                var states = JSON.parse(localStorage.getItem('featureGroupStates') || '{}');
+                states[collapseId] = isOpen;
+                localStorage.setItem('featureGroupStates', JSON.stringify(states));
+            } catch (e) {
+                console.error('Error saving group state:', e);
+            }
+        }
+        
+        // Hàm khôi phục trạng thái mở/đóng của groups từ localStorage
+        function restoreGroupStates() {
+            try {
+                var states = JSON.parse(localStorage.getItem('featureGroupStates') || '{}');
+                $('.feature-group-toggle').each(function() {
+                    var collapseId = $(this).data('collapse-id');
+                    if (collapseId && states[collapseId] === true) {
+                        var $content = $('#' + collapseId);
+                        var $heading = $(this);
+                        var $icon = $heading.find('.collapse-icon');
+                        
+                        if ($content.length > 0) {
+                            $content.show();
+                            $heading.removeClass('collapsed').addClass('active');
+                            $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Error restoring group states:', e);
+            }
+        }
+        
+        // Hàm toggle FeatureGroup - có thể gọi từ bất kỳ đâu
+        function toggleFeatureGroup(collapseId, headingElement) {
+            var $content = $('#' + collapseId);
+            var $heading = $(headingElement);
+            var $icon = $heading.find('.collapse-icon');
+            
+            if ($content.length === 0) {
+                console.error('Content element not found for ID:', collapseId);
+                return;
+            }
+            
+            // Đóng tất cả các group khác (chỉ khi mở group mới)
+            var isCurrentlyVisible = $content.is(':visible');
+            
+            // Toggle group hiện tại
+            if (isCurrentlyVisible) {
+                // Đóng group hiện tại
+                $content.slideUp(300);
+                $heading.removeClass('active').addClass('collapsed');
+                $icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                saveGroupState(collapseId, false);
+            } else {
+                // Mở group hiện tại và đóng các group khác
+                $('.feature-group-content').not($content).slideUp(300);
+                $('.feature-group-toggle').not($heading).each(function() {
+                    var otherId = $(this).data('collapse-id');
+                    if (otherId) {
+                        saveGroupState(otherId, false);
+                    }
+                });
+                $('.feature-group-toggle').not($heading).removeClass('active').addClass('collapsed');
+                $('.feature-group-toggle').not($heading).find('.collapse-icon').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                
+                $content.slideDown(300);
+                $heading.removeClass('collapsed').addClass('active');
+                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                saveGroupState(collapseId, true);
+            }
+        }
+        
+        // Flag để đánh dấu đang click vào feature link
+        var isClickingFeatureLink = false;
+        
+        // Xử lý collapse cho FeatureGroups trong sidebar
+        $(document).ready(function() {
+            console.log('FeatureGroup collapse script loaded');
+            console.log('Found feature-group-toggle elements:', $('.feature-group-toggle').length);
+            
+            // Khôi phục trạng thái mở/đóng của groups từ localStorage
+            restoreGroupStates();
+            
+            // Đảm bảo feature links không trigger collapse - ĐẶT TRƯỚC handler của toggle
+            $(document).on('click', '.feature-link, .feature-group-content .nav-link, .feature-group-content a, .feature-group-content li', function(e) {
+                // Đánh dấu đang click vào feature link
+                isClickingFeatureLink = true;
+                
+                // Lưu trạng thái mở của group chứa feature link này
+                var $groupContent = $(this).closest('.feature-group-content');
+                if ($groupContent.length > 0) {
+                    var collapseId = $groupContent.attr('id');
+                    if (collapseId) {
+                        saveGroupState(collapseId, true); // Lưu trạng thái mở
+                    }
+                }
+                
+                // Cho phép navigation bình thường, ngăn event bubble lên HOÀN TOÀN
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                console.log('Feature link clicked, preventing collapse');
+                
+                // Reset flag sau một khoảng thời gian ngắn
+                setTimeout(function() {
+                    isClickingFeatureLink = false;
+                }, 200);
+                
+                // Không preventDefault để cho phép navigation
+                return true; // Cho phép navigation
+            });
+            
+            // Chỉ toggle khi click vào chính heading element, không phải vào feature links
+            $(document).on('click', '.feature-group-toggle', function(e) {
+                // Nếu đang click vào feature link, không toggle
+                if (isClickingFeatureLink) {
+                    console.log('Click on feature link detected, ignoring toggle');
+                    return false;
+                }
+                
+                // Kiểm tra nếu click vào feature link hoặc element con của feature-group-content, không toggle
+                var $target = $(e.target);
+                
+                // Nếu click vào feature link hoặc content, không toggle
+                if ($target.closest('.feature-link, .nav-link, .nav-item, .feature-group-content').length > 0) {
+                    console.log('Click on feature link or content, ignoring toggle');
+                    return false; // Không xử lý nếu click vào feature link
+                }
+                
+                // Chỉ toggle nếu click vào chính heading (không phải vào element con là feature link)
+                e.preventDefault();
+                e.stopPropagation();
+                
+                var collapseId = $(this).data('collapse-id');
+                if (collapseId) {
+                    console.log('Toggling group:', collapseId);
+                    toggleFeatureGroup(collapseId, this);
+                }
+                
+                return false;
+            });
+        });
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
